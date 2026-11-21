@@ -11,7 +11,7 @@
  */
 import { Config, Context, Data, Duration, Effect, Layer, Redacted, Schedule } from 'effect';
 
-import { DEFAULT_ENDPOINT, toUnixTimestamp, type GroupOptions, type IdentifyOptions, type InsightIncrementOptions, type InsightTrackOptions, type SubscribeOptions, type TrackOptions } from './index.js';
+import { DEFAULT_ENDPOINT, toUnixTimestamp, type ExperimentOptions, type GroupOptions, type IdentifyOptions, type InsightIncrementOptions, type InsightTrackOptions, type SubscribeOptions, type TrackOptions } from './index.js';
 
 /** The server understood the request and said no: a bad channel name, a spent allowance, a key without the right scope. Never retried. */
 export class PublishRefused extends Data.TaggedError('PublishRefused')<{
@@ -50,6 +50,11 @@ export interface EventsService {
   readonly group: (options: GroupOptions) => Effect.Effect<void, PublishError>;
   /** Puts an address on the project's newsletter list; signing it up again changes nothing. */
   readonly subscribe: (options: SubscribeOptions) => Effect.Effect<void, PublishError>;
+  /**
+   * Which variant of an A/B test a person gets. The same person always gets the same one. With the service
+   * disabled it is the first variant and nothing is sent.
+   */
+  readonly experiment: (options: ExperimentOptions) => Effect.Effect<string, PublishError>;
   readonly insight: {
     /** Sets an insight to a value. */
     readonly track: (options: InsightTrackOptions) => Effect.Effect<void, PublishError>;
@@ -62,8 +67,8 @@ export interface EventsService {
 export function make({ token, project, endpoint = DEFAULT_ENDPOINT, timeout = Duration.seconds(10), disabled = false, fetch: fetcher = globalThis.fetch }: EventsOptions): EventsService {
   const base = endpoint.replace(/\/$/, '');
 
-  const send = (method: 'POST' | 'PATCH', path: string, body: object): Effect.Effect<void, PublishError> => {
-    if (disabled) return Effect.void;
+  /** Sends one request, with one retry, and gives back what the server answered with. */
+  const request = (method: 'POST' | 'PATCH', path: string, body: object): Effect.Effect<unknown, PublishError> => {
     const attempt = Effect.tryPromise({
       // The signal is Effect's own: interrupting the fibre, or the timeout below, aborts the request.
       try: (signal) =>
@@ -76,8 +81,8 @@ export function make({ token, project, endpoint = DEFAULT_ENDPOINT, timeout = Du
       catch: (cause) => new PublishFailed({ message: `The server at ${base} could not be reached.`, cause }),
     }).pipe(
       Effect.timeoutFail({ duration: timeout, onTimeout: () => new PublishFailed({ message: `No answer from ${base} within ${Duration.format(Duration.decode(timeout))}.` }) }),
-      Effect.flatMap((response): Effect.Effect<void, PublishError> => {
-        if (response.ok) return Effect.void;
+      Effect.flatMap((response): Effect.Effect<unknown, PublishError> => {
+        if (response.ok) return Effect.promise(() => response.json().catch(() => null));
         if (response.status >= 500) return Effect.fail(new PublishFailed({ message: `The server answered ${response.status}.`, cause: response.status }));
         return Effect.promise(() => response.json().catch(() => null) as Promise<{ error?: string } | null>).pipe(
           Effect.flatMap((data) => Effect.fail(new PublishRefused({ status: response.status, message: data?.error ?? `The server answered ${response.status}.`, body: data }))),
@@ -87,12 +92,17 @@ export function make({ token, project, endpoint = DEFAULT_ENDPOINT, timeout = Du
     // One retry, and only for failures that trying again can fix. A refusal is final.
     return attempt.pipe(Effect.retry({ times: 1, schedule: Schedule.spaced(Duration.millis(250)), while: (error) => error._tag === 'PublishFailed' }));
   };
+  const send = (method: 'POST' | 'PATCH', path: string, body: object): Effect.Effect<void, PublishError> => (disabled ? Effect.void : Effect.asVoid(request(method, path, body)));
 
   return {
     track: (options) => send('POST', '/v1/log', { ...options, timestamp: toUnixTimestamp(options.timestamp) }),
     identify: (options) => send('POST', '/v1/identify', options),
     group: (options) => send('POST', '/v1/group', options),
     subscribe: (options) => send('POST', '/v1/subscribe', options),
+    experiment: (options) =>
+      disabled
+        ? Effect.succeed(options.variants[0])
+        : request('POST', '/v1/experiment', options).pipe(Effect.map((answer) => (answer as { variant?: string } | null)?.variant ?? options.variants[0])),
     insight: {
       track: (options) => send('POST', '/v1/insight', options),
       increment: ({ title, value, icon }) => send('PATCH', '/v1/insight', { title, icon, value: { $inc: value } }),
@@ -105,15 +115,15 @@ export class Events extends Context.Tag('@snekot/sdk/Events')<Events, EventsServ
   static readonly layer = (options: EventsOptions): Layer.Layer<Events> => Layer.succeed(Events, make(options));
 
   /**
-   * Reads `EVENTS_TOKEN`, `EVENTS_PROJECT` and, optionally, `EVENTS_ENDPOINT` from the program's configuration,
+   * Reads `SNEKOT_TOKEN`, `SNEKOT_PROJECT` and, optionally, `SNEKOT_ENDPOINT` from the program's configuration,
    * which is the environment unless another provider is set. A missing value fails the layer with a `ConfigError`.
    */
   static readonly layerConfig = Layer.effect(
     Events,
     Effect.gen(function* () {
-      const token = yield* Config.redacted('EVENTS_TOKEN');
-      const project = yield* Config.string('EVENTS_PROJECT');
-      const endpoint = yield* Config.string('EVENTS_ENDPOINT').pipe(Config.withDefault(DEFAULT_ENDPOINT));
+      const token = yield* Config.redacted('SNEKOT_TOKEN');
+      const project = yield* Config.string('SNEKOT_PROJECT');
+      const endpoint = yield* Config.string('SNEKOT_ENDPOINT').pipe(Config.withDefault(DEFAULT_ENDPOINT));
       return make({ token, project, endpoint });
     }),
   );

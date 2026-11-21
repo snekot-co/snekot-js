@@ -1,12 +1,14 @@
+'use client';
+
 /**
  * React and Next.js: `<EventsProvider token project endpoint>` once, then `useEvents()` anywhere under it.
- * In Next's App Router, import this from a client component.
+ * The module is marked as a client module, so in Next's App Router it can be used straight from a server layout.
  */
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { DEFAULT_ENDPOINT, type IdentifyOptions, type Properties, type TrackOptions } from './index.js';
+import { DEFAULT_ENDPOINT, type GroupOptions, type IdentifyOptions, type Properties, type TrackOptions } from './index.js';
 
-type Command = 'setConfig' | 'setDebug' | 'setUserId' | 'clearUserId' | 'track' | 'identify' | 'group' | 'experiment' | 'subscribe';
+type Command = 'setConfig' | 'setDebug' | 'setUserId' | 'clearUserId' | 'track' | 'identify' | 'group' | 'experiment' | 'subscribe' | 'remember' | 'trackPageView';
 
 declare global {
   interface Window {
@@ -26,25 +28,36 @@ function send(command: Command, ...args: unknown[]) {
 }
 
 export interface EventsProviderProps {
+  /** A public key (`pk_…`). Anything in a web page can be read by the people who open it. */
   token: string;
   project: string;
+  /** Where the script and the API are; another only when you pass them through your own domain. */
   endpoint?: string;
+  /** Keep a random visitor id on the device, so the same visitor is the same person tomorrow. Off by default. */
+  remember?: boolean;
+  /** Record clicks on links to other sites. */
+  outbound?: boolean;
+  /** Record clicks on links to files. */
+  downloads?: boolean;
+  /** The channel outbound links and downloads are posted to; `web` by default. */
+  channel?: string;
   children?: ReactNode;
 }
 
 /** Loads the browser script once and configures it. Use a key made for the browser, not a server's. */
-export function EventsProvider({ token, project, endpoint = DEFAULT_ENDPOINT, children }: EventsProviderProps) {
+export function EventsProvider({ token, project, endpoint = DEFAULT_ENDPOINT, remember, outbound, downloads, channel, children }: EventsProviderProps) {
   useEffect(() => {
     // The script is told where it was loaded from, so a site that passes it through its own domain sends there too.
-    send('setConfig', token, project, { endpoint });
+    send('setConfig', token, project, { endpoint, remember, outbound, downloads, channel });
+    // The script stays once it is in the page. Taking it out would not undo it, and putting it back would run it
+    // a second time, which counts every page view and click twice. React's strict mode does exactly that in development.
     if (document.getElementById(SCRIPT_ID)) return;
     const script = document.createElement('script');
     script.id = SCRIPT_ID;
     script.async = true;
     script.src = `${endpoint.replace(/\/$/, '')}/snekot.js`;
     document.head.appendChild(script);
-    return () => script.remove();
-  }, [token, project, endpoint]);
+  }, [token, project, endpoint, remember, outbound, downloads, channel]);
   return <>{children}</>;
 }
 
@@ -87,6 +100,11 @@ const api = {
   clearUserId: () => send('clearUserId'),
   track: (options: TrackOptions) => send('track', options),
   identify: (options: IdentifyOptions) => send('identify', options),
+  group: (options: GroupOptions) => send('group', options),
+  /** Keeps a visitor id on the device from now on, for a site that asks its visitors first; `false` stops and removes it. */
+  remember: (flag = true) => send('remember', flag),
+  /** Counts the current page. The script does this by itself; call it only if your router hides navigation from it. */
+  trackPageView: () => send('trackPageView'),
   experiment,
   subscribe,
 };

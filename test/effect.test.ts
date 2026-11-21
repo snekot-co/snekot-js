@@ -65,9 +65,17 @@ check('a network failure is retried once', Either.isRight(await run(track)) && s
 seen.length = 0;
 check('the disabled layer sends nothing', Either.isRight(await run(track, Events.layerDisabled)) && seen.length === 0);
 
-const fromConfig = Events.layerConfig.pipe(Layer.provide(Layer.setConfigProvider(ConfigProvider.fromMap(new Map([['EVENTS_TOKEN', 'sk_env'], ['EVENTS_PROJECT', 'from-env']])))));
+const fromConfig = Events.layerConfig.pipe(Layer.provide(Layer.setConfigProvider(ConfigProvider.fromMap(new Map([['SNEKOT_TOKEN', 'sk_env'], ['SNEKOT_PROJECT', 'from-env']])))));
 check('layerConfig builds from configuration', Either.isRight(await Effect.runPromise(Effect.either(Effect.provide(Events, fromConfig)))));
 check('layerConfig fails without a token', Either.isLeft(await Effect.runPromise(Effect.either(Effect.provide(Events, Events.layerConfig.pipe(Layer.provide(Layer.setConfigProvider(ConfigProvider.fromMap(new Map())))))))));
+seen.length = 0;
+answers = [() => new Response('{"experiment":"pricing","variant":"new"}', { status: 200 })];
+const variant = await run(Effect.flatMap(Events, (events) => events.experiment({ experiment: 'pricing', variants: ['control', 'new'], user_id: 'user-1' })));
+check('experiment answers with the variant the server chose', Either.isRight(variant) && variant.right === 'new' && seen[0].path === '/v1/experiment');
+seen.length = 0;
+const quiet = await run(Effect.flatMap(Events, (events) => events.experiment({ experiment: 'pricing', variants: ['control', 'new'] })), Events.layerDisabled);
+check('disabled, an experiment is its first variant and sends nothing', Either.isRight(quiet) && quiet.right === 'control' && seen.length === 0);
+
 check('the token does not print', !String(Redacted.make('sk_secret')).includes('sk_secret'));
 
 if (failed > 0) {

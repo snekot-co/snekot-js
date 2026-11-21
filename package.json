@@ -1,6 +1,6 @@
 {
   "name": "@snekot/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Post product events, identify users and set insights with Snekot. For Node, Deno, Bun and edge runtimes, with Effect, React and Vue entry points.",
   "license": "MIT",
   "homepage": "https://snekot.co/docs/sdks",
@@ -9,37 +9,73 @@
     "url": "git+https://github.com/snekot-co/snekot-js.git"
   },
   "bugs": "https://github.com/snekot-co/snekot-js/issues",
-  "keywords": ["snekot", "events", "analytics", "event-tracking", "notifications", "effect", "react", "vue"],
+  "keywords": [
+    "snekot",
+    "events",
+    "analytics",
+    "event-tracking",
+    "notifications",
+    "effect",
+    "react",
+    "vue"
+  ],
   "type": "module",
   "sideEffects": false,
   "engines": {
     "node": ">=18"
   },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./effect": {
-      "types": "./dist/effect.d.ts",
-      "default": "./dist/effect.js"
+      "import": {
+        "types": "./dist/effect.d.ts",
+        "default": "./dist/effect.js"
+      },
+      "require": {
+        "types": "./dist/cjs/effect.d.ts",
+        "default": "./dist/cjs/effect.js"
+      }
     },
     "./react": {
-      "types": "./dist/react.d.ts",
-      "default": "./dist/react.js"
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      },
+      "require": {
+        "types": "./dist/cjs/react.d.ts",
+        "default": "./dist/cjs/react.js"
+      }
     },
     "./vue": {
-      "types": "./dist/vue.d.ts",
-      "default": "./dist/vue.js"
-    }
+      "import": {
+        "types": "./dist/vue.d.ts",
+        "default": "./dist/vue.js"
+      },
+      "require": {
+        "types": "./dist/cjs/vue.d.ts",
+        "default": "./dist/cjs/vue.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
-  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "check": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({ type: 'commonjs' }))\"",
     "conformance": "tsx test/conformance.test.ts && tsx test/effect.test.ts",
     "smoke": "tsx test/smoke.ts",
     "test": "pnpm check && pnpm conformance",

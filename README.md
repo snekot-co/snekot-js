@@ -2,10 +2,10 @@
 
 The [Snekot](https://snekot.co) SDK for TypeScript and JavaScript. Post product events, get them as push notifications, identify users and set insights.
 
-Runs on Node 18+, Deno, Bun and edge runtimes. No dependencies. ES modules only.
+Runs on Node 18+, Deno, Bun and edge runtimes. No dependencies. Works with `import` and with `require`.
 
 ```bash
-npm install https://github.com/snekot-co/snekot-js/releases/download/0.1.0/snekot-sdk-0.1.0.tgz
+npm install https://github.com/snekot-co/snekot-js/releases/download/0.2.0/snekot-sdk-0.2.0.tgz
 ```
 
 That installs the built package from this repository's release, under the name `@snekot/sdk`. It works the same with pnpm, yarn and bun. The package is not on the npm registry yet.
@@ -57,9 +57,9 @@ const program = Effect.gen(function* () {
 program.pipe(Effect.provide(Events.layerConfig), Effect.runPromise);
 ```
 
-`Events.layerConfig` reads `EVENTS_TOKEN`, `EVENTS_PROJECT` and, optionally, `EVENTS_ENDPOINT`. The token is redacted, so it never prints in a log or a trace. `Events.layer(options)` takes the values directly and `Events.layerDisabled` sends nothing.
+`Events.layerConfig` reads `SNEKOT_TOKEN`, `SNEKOT_PROJECT` and, optionally, `SNEKOT_ENDPOINT`. The token is redacted, so it never prints in a log or a trace. `Events.layer(options)` takes the values directly and `Events.layerDisabled` sends nothing.
 
-A call fails with `PublishRefused`, when the server said no, or `PublishFailed`, when there was no usable answer after one retry.
+A call fails with `PublishRefused`, when the server said no, or `PublishFailed`, when there was no usable answer after one retry. `events.experiment(…)` answers with the variant.
 
 ## React, Next.js and Vue
 
@@ -70,11 +70,13 @@ import { EventsProvider, useEvents } from '@snekot/sdk/react';
 
 <EventsProvider token="pk_…" project="acme-store">{children}</EventsProvider>;
 
-const { track, identify, subscribe, setUserId } = useEvents();
+const { track, identify, group, subscribe, setUserId } = useEvents();
 const ok = await subscribe(email);
 ```
 
-`useExperiment(name, variants)` gives the visitor's variant, or `null` until it is known. In Next's App Router, import from a client component.
+The provider also takes the script's options: `remember`, `outbound`, `downloads` and `channel`. They are described in the [script's docs](https://snekot.co/docs/browser).
+
+`useExperiment(name, variants)` gives the visitor's variant, or `null` until it is known. The module is marked `'use client'`, so in Next's App Router the provider can go straight into a server layout.
 
 ```ts
 import Events, { track, subscribe } from '@snekot/sdk/vue';
@@ -87,7 +89,7 @@ app.use(Events, { token: 'pk_…', project: 'acme-store' });
 ```bash
 pnpm install
 pnpm test     # type-check, then the conformance cases with a recording fetch
-pnpm build    # ES modules and types to dist/
+pnpm build    # ES modules to dist/, CommonJS to dist/cjs/, types for both
 ```
 
 `test/conformance.json` is the wire contract every Snekot SDK is tested against. `pnpm smoke` runs every method against the real API; it needs `SNEKOT_TOKEN` and `SNEKOT_PROJECT`.
