@@ -5,8 +5,10 @@ The [Snekot](https://snekot.co) SDK for TypeScript and JavaScript. Post product 
 Runs on Node 18+, Deno, Bun and edge runtimes. No dependencies. ES modules only.
 
 ```bash
-npm install @snekot/sdk
+npm install https://github.com/snekot-co/snekot-js/releases/download/0.1.0/snekot-sdk-0.1.0.tgz
 ```
+
+That installs the built package from this repository's release, under the name `@snekot/sdk`. It works the same with pnpm, yarn and bun. The package is not on the npm registry yet.
 
 ## Use
 
