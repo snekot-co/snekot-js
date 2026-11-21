@@ -1,0 +1,68 @@
+{
+  "name": "@snekot/sdk",
+  "version": "0.1.0",
+  "description": "Post product events, identify users and set insights with Snekot. For Node, Deno, Bun and edge runtimes, with Effect, React and Vue entry points.",
+  "license": "MIT",
+  "homepage": "https://snekot.co/docs/sdks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snekot-co/snekot-js.git"
+  },
+  "bugs": "https://github.com/snekot-co/snekot-js/issues",
+  "keywords": ["snekot", "events", "analytics", "event-tracking", "notifications", "effect", "react", "vue"],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./effect": {
+      "types": "./dist/effect.d.ts",
+      "default": "./dist/effect.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "default": "./dist/vue.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "conformance": "tsx test/conformance.test.ts && tsx test/effect.test.ts",
+    "smoke": "tsx test/smoke.ts",
+    "test": "pnpm check && pnpm conformance",
+    "prepublishOnly": "pnpm test && pnpm build"
+  },
+  "peerDependencies": {
+    "effect": "^3.19.0",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "~19.2.2",
+    "effect": "^3.19.0",
+    "react": "19.2.3",
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.3"
+  }
+}
