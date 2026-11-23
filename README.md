@@ -5,10 +5,10 @@ The [Snekot](https://snekot.co) SDK for TypeScript and JavaScript. Post product 
 Runs on Node 18+, Deno, Bun and edge runtimes. No dependencies. Works with `import` and with `require`.
 
 ```bash
-npm install https://github.com/snekot-co/snekot-js/releases/download/0.2.0/snekot-sdk-0.2.0.tgz
+npm install @snekot/sdk
 ```
 
-That installs the built package from this repository's release, under the name `@snekot/sdk`. It works the same with pnpm, yarn and bun. The package is not on the npm registry yet.
+It works the same with pnpm, yarn and bun.
 
 ## Use
 
@@ -91,6 +91,8 @@ pnpm install
 pnpm test     # type-check, then the conformance cases with a recording fetch
 pnpm build    # ES modules to dist/, CommonJS to dist/cjs/, types for both
 ```
+
+Publishing a release here publishes its version to npm; the release's tag must be the version in `package.json`.
 
 `test/conformance.json` is the wire contract every Snekot SDK is tested against. `pnpm smoke` runs every method against the real API; it needs `SNEKOT_TOKEN` and `SNEKOT_PROJECT`.
 
