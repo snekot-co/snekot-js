@@ -1,6 +1,6 @@
 {
   "name": "@snekot/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Post product events, identify users and set insights with Snekot. For Node, Deno, Bun and edge runtimes, with Effect, React and Vue entry points.",
   "license": "MIT",
   "homepage": "https://snekot.co/docs/sdks",
