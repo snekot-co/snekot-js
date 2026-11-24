@@ -20,7 +20,7 @@ const events = new Client({ token: process.env.SNEKOT_TOKEN, project: 'acme-stor
 await events.track({ channel: 'payments', event: 'New subscription', icon: '💰', notify: true, tags: { plan: 'pro' } });
 await events.identify({ user_id: 'user-123', properties: { plan: 'pro' } });
 await events.group({ group_id: 'acme', user_id: 'user-123', properties: { name: 'Acme' } });
-await events.subscribe({ email: 'jane@example.com', name: 'Jane Park' });
+await events.subscribe({ email: 'jane@example.com', name: 'Jane Park', language: 'sv-SE', timezone: 'Europe/Stockholm' });
 await events.insight.track({ title: 'MRR', value: '$1,289' });
 await events.insight.increment({ title: 'Orders', value: 1 });
 ```

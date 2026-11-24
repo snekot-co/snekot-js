@@ -28,7 +28,7 @@ export const trackPageView = () => send('trackPageView');
 /** Which variant of an A/B test this visitor gets. The answer waits for the script, so it also works before it has loaded. */
 export const experiment = (name: string, variants: readonly string[]) => new Promise<string>((resolve) => send('experiment', name, variants, resolve));
 /** Puts an address on the project's newsletter list. It answers true once the server has it, false when it was refused or could not be reached. */
-export const subscribe = (email: string, properties?: Properties, options?: { name?: string }) => new Promise<boolean>((resolve) => send('subscribe', email, properties, options, resolve));
+export const subscribe = (email: string, properties?: Properties, options?: { name?: string; language?: string; timezone?: string }) => new Promise<boolean>((resolve) => send('subscribe', email, properties, options, resolve));
 
 export interface EventsPluginOptions {
   /** A public key (`pk_…`). */

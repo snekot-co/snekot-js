@@ -74,7 +74,7 @@ const experiment = (name: string, variants: readonly string[]) => new Promise<st
  * Puts an address on the project's newsletter list, from a signup field of your own. It answers true once the
  * server has it and false when it was refused or could not be reached. The answer waits for the script.
  */
-const subscribe = (email: string, properties?: Properties, options?: { name?: string }) => new Promise<boolean>((resolve) => send('subscribe', email, properties, options, resolve));
+const subscribe = (email: string, properties?: Properties, options?: { name?: string; language?: string; timezone?: string }) => new Promise<boolean>((resolve) => send('subscribe', email, properties, options, resolve));
 
 /**
  * The visitor's variant of an A/B test, or null until it is known. Render the first variant, or nothing, while

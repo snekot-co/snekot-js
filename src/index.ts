@@ -55,6 +55,10 @@ export interface SubscribeOptions {
   source?: string;
   /** Push the signup to the phones of everyone on the project. */
   notify?: boolean;
+  /** The person's language, as a tag such as `sv` or `sv-SE`. */
+  language?: string;
+  /** The person's time zone, as its IANA name, such as `Europe/Stockholm`. */
+  timezone?: string;
 }
 
 export interface InsightTrackOptions {
