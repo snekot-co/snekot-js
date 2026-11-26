@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { DEFAULT_ENDPOINT, type GroupOptions, type IdentifyOptions, type Properties, type TrackOptions } from './index.js';
 
-type Command = 'setConfig' | 'setDebug' | 'setUserId' | 'clearUserId' | 'track' | 'identify' | 'group' | 'experiment' | 'subscribe' | 'remember' | 'trackPageView';
+type Command = 'setConfig' | 'setDebug' | 'setUserId' | 'clearUserId' | 'track' | 'identify' | 'group' | 'experiment' | 'flag' | 'subscribe' | 'remember' | 'trackPageView';
 
 declare global {
   interface Window {
@@ -70,6 +70,9 @@ export function SetUserIdServerComponent({ userId }: { userId: string | null }) 
 /** Asks which variant of an A/B test this visitor gets. The answer waits for the script, so it also works before it has loaded. */
 const experiment = (name: string, variants: readonly string[]) => new Promise<string>((resolve) => send('experiment', name, variants, resolve));
 
+/** Asks whether a feature flag is on for this visitor. It is off when the answer cannot be had. The answer waits for the script. */
+const flag = (key: string) => new Promise<boolean>((resolve) => send('flag', key, resolve));
+
 /**
  * Puts an address on the project's newsletter list, from a signup field of your own. It answers true once the
  * server has it and false when it was refused or could not be reached. The answer waits for the script.
@@ -93,6 +96,19 @@ export function useExperiment(name: string, variants: readonly string[]): string
   return variant;
 }
 
+/** Whether a feature flag is on for the visitor, or null until it is known. Render the flag as off while it is null. */
+export function useFlag(key: string): boolean | null {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let current = true;
+    void flag(key).then((answer) => current && setOn(answer));
+    return () => {
+      current = false;
+    };
+  }, [key]);
+  return on;
+}
+
 const api = {
   setDebug: (flag = true) => send('setDebug', flag),
   /** Page views and events are tied to this user from now on; pass `null` when they sign out. */
@@ -106,6 +122,7 @@ const api = {
   /** Counts the current page. The script does this by itself; call it only if your router hides navigation from it. */
   trackPageView: () => send('trackPageView'),
   experiment,
+  flag,
   subscribe,
 };
 

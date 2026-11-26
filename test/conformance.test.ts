@@ -70,6 +70,30 @@ seen.length = 0;
 asking.disableTracking();
 check('with tracking disabled an experiment is its first variant and sends nothing', (await asking.experiment({ experiment: 'pricing', variants: ['control', 'new'] })) === 'control' && seen.length === 0);
 
+// A flag reads its answer too: on or off.
+const flagging = new Client({ token: 'sk_test', project: suite.project, endpoint: 'http://sdk.test', fetch: fetcher });
+seen.length = 0;
+answers = [() => new Response('{"flag":"new-checkout","on":true}', { status: 200 })];
+const on = await flagging.flag({ flag: 'new-checkout', user_id: 'user-1' });
+check('flag posts the key and the person', isDeepStrictEqual({ method: seen[0].method, path: seen[0].path, body: seen[0].body }, { method: 'POST', path: '/v1/flag', body: { project: suite.project, flag: 'new-checkout', user_id: 'user-1' } }), seen[0]);
+check('  and is true when the server says on', on === true);
+answers = [() => new Response('{"flag":"new-checkout","on":false}', { status: 200 })];
+check('  and false when the server says off', (await flagging.flag({ flag: 'new-checkout', user_id: 'user-2' })) === false);
+seen.length = 0;
+answers = [() => new Response('{"error":"flag is required"}', { status: 400 })];
+const unasked = await flagging.flag({ flag: '' }).catch((error: unknown) => error);
+check('a refused flag throws, once, with the server\'s sentence', seen.length === 1 && unasked instanceof HTTPResponseError && unasked.status === 400 && unasked.message.includes('flag is required'));
+seen.length = 0;
+answers = [() => new Response('{}', { status: 503 }), () => new Response('{"flag":"new-checkout","on":true}', { status: 200 })];
+check('a 5xx on a flag is retried once', (await flagging.flag({ flag: 'new-checkout' })) === true && seen.length === 2);
+seen.length = 0;
+answers = [() => new Response('{}', { status: 503 }), () => new Response('{}', { status: 503 })];
+const unanswered = await flagging.flag({ flag: 'new-checkout' }).catch((error: unknown) => error);
+check('two 5xx in a row on a flag throw', seen.length === 2 && unanswered instanceof HTTPResponseError && unanswered.status === 503);
+seen.length = 0;
+flagging.disableTracking();
+check('with tracking disabled a flag is off and sends nothing', (await flagging.flag({ flag: 'new-checkout', user_id: 'user-1' })) === false && seen.length === 0);
+
 if (failed > 0) {
   console.error(`${failed} failed`);
   process.exit(1);

@@ -75,6 +75,20 @@ check('experiment answers with the variant the server chose', Either.isRight(var
 seen.length = 0;
 const quiet = await run(Effect.flatMap(Events, (events) => events.experiment({ experiment: 'pricing', variants: ['control', 'new'] })), Events.layerDisabled);
 check('disabled, an experiment is its first variant and sends nothing', Either.isRight(quiet) && quiet.right === 'control' && seen.length === 0);
+seen.length = 0;
+answers = [() => new Response('{"flag":"new-checkout","on":true}', { status: 200 })];
+const on = await run(Effect.flatMap(Events, (events) => events.flag({ flag: 'new-checkout', user_id: 'user-1' })));
+check('flag posts the key and the person, and is true when the server says on', Either.isRight(on) && on.right === true && isDeepStrictEqual({ method: seen[0].method, path: seen[0].path, body: seen[0].body }, { method: 'POST', path: '/v1/flag', body: { project: suite.project, flag: 'new-checkout', user_id: 'user-1' } }), seen[0]);
+answers = [() => new Response('{"flag":"new-checkout","on":false}', { status: 200 })];
+const off = await run(Effect.flatMap(Events, (events) => events.flag({ flag: 'new-checkout', user_id: 'user-2' })));
+check('flag is false when the server says off', Either.isRight(off) && off.right === false);
+seen.length = 0;
+answers = [() => new Response('{"error":"flag is required"}', { status: 400 })];
+const unasked = await run(Effect.flatMap(Events, (events) => events.flag({ flag: '' })));
+check('a refused flag fails as PublishRefused, once', seen.length === 1 && Either.isLeft(unasked) && unasked.left._tag === 'PublishRefused' && unasked.left.status === 400);
+seen.length = 0;
+const dark = await run(Effect.flatMap(Events, (events) => events.flag({ flag: 'new-checkout', user_id: 'user-1' })), Events.layerDisabled);
+check('disabled, a flag is off and sends nothing', Either.isRight(dark) && dark.right === false && seen.length === 0);
 
 check('the token does not print', !String(Redacted.make('sk_secret')).includes('sk_secret'));
 

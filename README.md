@@ -33,12 +33,18 @@ Use a private key (`sk_…`) on a server. Keys are made in the app under Setup; 
 const variant = await events.experiment({ experiment: 'pricing-page', variants: ['control', 'annual-first'], user_id: 'user-123' });
 ```
 
+`flag` asks whether a feature flag is on for a person. A key with no flag answers `false`:
+
+```ts
+const on = await events.flag({ flag: 'new-checkout', user_id: 'user-123' });
+```
+
 ### Behaviour
 
 - One attempt may take 10 seconds (`timeout`, in milliseconds).
 - A network failure or a server error is retried once, after a quarter of a second.
 - A refusal (a 4xx, such as a bad channel name) is never retried. It throws `HTTPResponseError` with the status and the server's own sentence for what to fix.
-- `disableTracking: true`, or `events.disableTracking()`, makes every call succeed without sending anything, for tests and local runs.
+- `disableTracking: true`, or `events.disableTracking()`, makes every call succeed without sending anything, for tests and local runs. An experiment is then its first variant and a flag is off.
 - `endpoint` defaults to `https://api.snekot.co`. Pass another only if you [proxy the API through your own domain](https://snekot.co/docs/proxy).
 
 ## Effect
@@ -59,7 +65,7 @@ program.pipe(Effect.provide(Events.layerConfig), Effect.runPromise);
 
 `Events.layerConfig` reads `SNEKOT_TOKEN`, `SNEKOT_PROJECT` and, optionally, `SNEKOT_ENDPOINT`. The token is redacted, so it never prints in a log or a trace. `Events.layer(options)` takes the values directly and `Events.layerDisabled` sends nothing.
 
-A call fails with `PublishRefused`, when the server said no, or `PublishFailed`, when there was no usable answer after one retry. `events.experiment(…)` answers with the variant.
+A call fails with `PublishRefused`, when the server said no, or `PublishFailed`, when there was no usable answer after one retry. `events.experiment(…)` answers with the variant and `events.flag(…)` with `true` or `false`.
 
 ## React, Next.js and Vue
 
@@ -76,7 +82,7 @@ const ok = await subscribe(email);
 
 The provider also takes the script's options: `remember`, `outbound`, `downloads` and `channel`. They are described in the [script's docs](https://snekot.co/docs/browser).
 
-`useExperiment(name, variants)` gives the visitor's variant, or `null` until it is known. The module is marked `'use client'`, so in Next's App Router the provider can go straight into a server layout.
+`useExperiment(name, variants)` gives the visitor's variant, or `null` until it is known. `useFlag(key)` gives `true` or `false` for a feature flag, or `null` until it is known; in the browser a flag is off when the answer cannot be had. The module is marked `'use client'`, so in Next's App Router the provider can go straight into a server layout.
 
 ```ts
 import Events, { track, subscribe } from '@snekot/sdk/vue';

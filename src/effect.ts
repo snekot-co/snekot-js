@@ -11,7 +11,7 @@
  */
 import { Config, Context, Data, Duration, Effect, Layer, Redacted, Schedule } from 'effect';
 
-import { DEFAULT_ENDPOINT, toUnixTimestamp, type ExperimentOptions, type GroupOptions, type IdentifyOptions, type InsightIncrementOptions, type InsightTrackOptions, type SubscribeOptions, type TrackOptions } from './index.js';
+import { DEFAULT_ENDPOINT, toUnixTimestamp, type ExperimentOptions, type FlagOptions, type GroupOptions, type IdentifyOptions, type InsightIncrementOptions, type InsightTrackOptions, type SubscribeOptions, type TrackOptions } from './index.js';
 
 /** The server understood the request and said no: a bad channel name, a spent allowance, a key without the right scope. Never retried. */
 export class PublishRefused extends Data.TaggedError('PublishRefused')<{
@@ -55,6 +55,11 @@ export interface EventsService {
    * disabled it is the first variant and nothing is sent.
    */
   readonly experiment: (options: ExperimentOptions) => Effect.Effect<string, PublishError>;
+  /**
+   * Whether a feature flag is on for a person. A key with no flag is off. With the service disabled it is off
+   * and nothing is sent.
+   */
+  readonly flag: (options: FlagOptions) => Effect.Effect<boolean, PublishError>;
   readonly insight: {
     /** Sets an insight to a value. */
     readonly track: (options: InsightTrackOptions) => Effect.Effect<void, PublishError>;
@@ -103,6 +108,7 @@ export function make({ token, project, endpoint = DEFAULT_ENDPOINT, timeout = Du
       disabled
         ? Effect.succeed(options.variants[0])
         : request('POST', '/v1/experiment', options).pipe(Effect.map((answer) => (answer as { variant?: string } | null)?.variant ?? options.variants[0])),
+    flag: (options) => (disabled ? Effect.succeed(false) : request('POST', '/v1/flag', options).pipe(Effect.map((answer) => (answer as { on?: boolean } | null)?.on === true))),
     insight: {
       track: (options) => send('POST', '/v1/insight', options),
       increment: ({ title, value, icon }) => send('PATCH', '/v1/insight', { title, icon, value: { $inc: value } }),

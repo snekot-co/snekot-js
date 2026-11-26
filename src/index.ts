@@ -86,6 +86,16 @@ export interface ExperimentOptions {
   user_agent?: string;
 }
 
+export interface FlagOptions {
+  /** The flag's key. */
+  flag: string;
+  /** The person, when they are known. */
+  user_id?: string;
+  /** For someone with no id: their address and user agent, which tie them to their page views and are not stored. */
+  ip?: string;
+  user_agent?: string;
+}
+
 /** A request the server refused, with the sentence it gave for why. */
 export class HTTPResponseError extends Error {
   constructor(
@@ -177,6 +187,16 @@ export class Client {
     if (this.disabled) return options.variants[0];
     const answer = (await this.request('POST', '/v1/experiment', options)) as { variant?: string } | null;
     return answer?.variant ?? options.variants[0];
+  }
+
+  /**
+   * Whether a feature flag is on for a person. The same person always gets the same answer while the flag stays as
+   * it is, and a key with no flag is off. With tracking disabled it is off and nothing is sent.
+   */
+  async flag(options: FlagOptions): Promise<boolean> {
+    if (this.disabled) return false;
+    const answer = (await this.request('POST', '/v1/flag', options)) as { on?: boolean } | null;
+    return answer?.on === true;
   }
 
   /** Sets an insight to a value. */

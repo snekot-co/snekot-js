@@ -27,6 +27,8 @@ export const remember = (flag = true) => send('remember', flag);
 export const trackPageView = () => send('trackPageView');
 /** Which variant of an A/B test this visitor gets. The answer waits for the script, so it also works before it has loaded. */
 export const experiment = (name: string, variants: readonly string[]) => new Promise<string>((resolve) => send('experiment', name, variants, resolve));
+/** Whether a feature flag is on for this visitor. It is off when the answer cannot be had. The answer waits for the script. */
+export const flag = (key: string) => new Promise<boolean>((resolve) => send('flag', key, resolve));
 /** Puts an address on the project's newsletter list. It answers true once the server has it, false when it was refused or could not be reached. */
 export const subscribe = (email: string, properties?: Properties, options?: { name?: string; language?: string; timezone?: string }) => new Promise<boolean>((resolve) => send('subscribe', email, properties, options, resolve));
 
