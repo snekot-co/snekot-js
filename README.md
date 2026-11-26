@@ -33,7 +33,7 @@ Use a private key (`sk_…`) on a server. Keys are made in the app under Setup; 
 const variant = await events.experiment({ experiment: 'pricing-page', variants: ['control', 'annual-first'], user_id: 'user-123' });
 ```
 
-`flag` asks whether a feature flag is on for a person. A key with no flag answers `false`:
+`flag` asks whether a [feature flag](https://snekot.co/docs/flags) is on for a person. A key with no flag answers `false`:
 
 ```ts
 const on = await events.flag({ flag: 'new-checkout', user_id: 'user-123' });
